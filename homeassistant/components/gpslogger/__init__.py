@@ -16,6 +16,7 @@ from homeassistant.const import HTTP_UNPROCESSABLE_ENTITY, \
     HTTP_OK, ATTR_LATITUDE, ATTR_LONGITUDE, CONF_WEBHOOK_ID
 from homeassistant.helpers import config_entry_flow
 from homeassistant.helpers.dispatcher import async_dispatcher_send
+from homeassistant.components.device_tracker import DOMAIN as DEVICE_TRACKER
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -101,9 +102,7 @@ async def async_setup_entry(hass, entry):
         DOMAIN, 'GPSLogger', entry.data[CONF_WEBHOOK_ID], handle_webhook)
 
     hass.async_create_task(
-        hass.config_entries.async_forward_entry_setup(
-            entry, 'device_tracker'
-        )
+        hass.config_entries.async_forward_entry_setup(entry, DEVICE_TRACKER)
     )
     return True
 
@@ -111,6 +110,10 @@ async def async_setup_entry(hass, entry):
 async def async_unload_entry(hass, entry):
     """Unload a config entry."""
     hass.components.webhook.async_unregister(entry.data[CONF_WEBHOOK_ID])
+
+    hass.async_create_task(
+        hass.config_entries.async_forward_entry_unload(entry, DEVICE_TRACKER)
+    )
     return True
 
 config_entry_flow.register_webhook_flow(

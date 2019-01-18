@@ -6,23 +6,22 @@ https://home-assistant.io/components/device_tracker.gpslogger/
 """
 import logging
 
-from homeassistant.components.gpslogger import TRACKER_UPDATE
+from homeassistant.components.device_tracker import DOMAIN as \
+    DEVICE_TRACKER_DOMAIN
+from homeassistant.components.gpslogger import DOMAIN as GPSLOGGER_DOMAIN, \
+    TRACKER_UPDATE
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
-from homeassistant.helpers.typing import HomeAssistantType, ConfigType
+from homeassistant.helpers.typing import HomeAssistantType
 
 _LOGGER = logging.getLogger(__name__)
 
 DEPENDENCIES = ['gpslogger']
 
-
-async def async_setup_scanner(hass: HomeAssistantType, config: ConfigType,
-                              async_see, discovery_info=None):
-    """Old method of setting up the GPSLogger device tracker platform."""
-    pass
+DATA_KEY = '{}.{}'.format(GPSLOGGER_DOMAIN, DEVICE_TRACKER_DOMAIN)
 
 
 async def async_setup_entry(hass: HomeAssistantType, entry, async_see):
-    """Set up an endpoint for the GPSLogger device tracker."""
+    """Configure a dispatcher connection based on a config entry."""
     async def _set_location(device, gps_location, battery, accuracy, attrs):
         """Fire HA event to set location."""
         await async_see(
@@ -33,5 +32,12 @@ async def async_setup_entry(hass: HomeAssistantType, entry, async_see):
             attributes=attrs
         )
 
-    async_dispatcher_connect(hass, TRACKER_UPDATE, _set_location)
+    hass.data[DATA_KEY] = async_dispatcher_connect(
+        hass, TRACKER_UPDATE, _set_location
+    )
     return True
+
+
+async def async_unload_entry(hass: HomeAssistantType, entry):
+    """Unload the config entry and remove the dispatcher connection."""
+    await hass.data[DATA_KEY]()
